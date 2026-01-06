@@ -16,6 +16,7 @@ load("humanize.star", "humanize")
 load("render.star", "render")
 load("schema.star", "schema")
 load("time.star", "time")
+load("re.star", "re")
 
 # API
 TEAM_SCHEDULE_URL = "https://www.cricbuzz.com/cricket-team/{team_name}/{team_id}/schedule"
@@ -132,7 +133,7 @@ def render_current_match(match, tz):
     statuses, render_columns = ["", "", "", ""], []
     default_match_status = ""
     if is_test_match:
-        day_number, match_state = details.get("dayNumber", 0), details["state"].lower()
+        day_number, match_state = details.get("dayNumber", get_current_day(details)), details["state"].lower()
         default_match_status = "Day {} {}".format(day_number, match_state)
         overs_rem = _safe_float(scorecard.get("oversRem", 0))
         if overs_rem > 0:
@@ -184,6 +185,15 @@ def render_current_match(match, tz):
             children = render_columns,
         ),
     )
+
+def get_current_day(details):
+    status = details.get("status")
+    if not status:
+        return 0
+
+    matches = re.findall("\\d+", status)
+    day = int(matches[0]) if len(matches) > 0 else 0
+    return day
 
 def render_next_match(match_data, tz):
     details = match_data["matchHeader"]
@@ -865,6 +875,8 @@ def _scrape_match_data(html):
                     data["matchHeader"]["venue"] = json.decode(unescaped)
                 else:
                     data["matchHeader"]["venue"] = json.decode(v_obj_str)
+
+    print(data)
 
     return data
 
